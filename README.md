@@ -1,10 +1,5 @@
-# Unity Asset Bundle Browser tool
+# Asset Bundle Browser Ciphered tool for Unity
 
-This tool enables the user to view and edit the configuration of asset bundles for their Unity project.  It will block editing that would create invalid bundles, and inform you of any issues with existing bundles.  It also provides basic build functionality.
+This tool mixes Unity's official [Asset Bundle Browser](https://github.com/Unity-Technologies/AssetBundles-Browser) and [TakuKobayashi's Unity-Cipher](https://github.com/TakuKobayashi/UnityCipher/) to add the encrypt functionality to Asset Bundles through Asset Bundle.
 
-This tool is intended to replace the current workflow of selecting assets and setting their asset bundle manually in the inspector.  It can be dropped into any Unity project with a version of 5.6 or greater.  It will create a new menu item in *Window->AssetBundle Browser*.  
-
-## Full Documentation
-#### Official Released Features
-See [the official manual page](https://docs.unity3d.com/Manual/AssetBundles-Browser.html) or view the included [project manual page](Documentation/com.unity.assetbundlebrowser.md)
-
+Using this modified version on Asset Bundle Browser, users can add a ciphering secret keyword to their bundles to add an extra protection layer to their bundlings. Just go to Build Tab and check "Protect Bundle?" option. Then introduce the password. An extra folder named "Ciphered" will be created in your build's path containing the protected bundle files.
