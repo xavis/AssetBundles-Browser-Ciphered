@@ -254,27 +254,11 @@ namespace AssetBundleBrowser.AssetBundleModel
         abstract internal bool DoesItemMatchSearch(string search);
     }
 
-    internal class BundleDependencyInfo
-    {
-        public string m_BundleName;
-        public List<AssetInfo> m_FromAssets;
-        public List<AssetInfo> m_ToAssets;
-
-        public BundleDependencyInfo( string bundleName, AssetInfo fromAsset, AssetInfo toAsset )
-        {
-            m_BundleName = bundleName;
-            m_FromAssets = new List<AssetInfo>();
-            m_FromAssets.Add( fromAsset );
-            m_ToAssets = new List<AssetInfo>();
-            m_ToAssets.Add( toAsset );
-        }
-    }
-
     internal class BundleDataInfo : BundleInfo
     {
         protected List<AssetInfo> m_ConcreteAssets;
         protected List<AssetInfo> m_DependentAssets;
-        protected List<BundleDependencyInfo> m_BundleDependencies;
+        protected HashSet<string> m_BundleDependencies;
         protected int m_ConcreteCounter;
         protected int m_DependentCounter;
         protected bool m_IsSceneBundle;
@@ -284,7 +268,7 @@ namespace AssetBundleBrowser.AssetBundleModel
         {
             m_ConcreteAssets = new List<AssetInfo>();
             m_DependentAssets = new List<AssetInfo>();
-            m_BundleDependencies = new List<BundleDependencyInfo>();
+            m_BundleDependencies = new HashSet<string>();
             m_ConcreteCounter = 0;
             m_DependentCounter = 0;
         }
@@ -375,17 +359,13 @@ namespace AssetBundleBrowser.AssetBundleModel
                         {
                             m_ConcreteAssets.Add(folderAsset);
                         }
-
-                        var newAsset = Model.CreateAsset(assetName, folderAsset);
-                        if (newAsset != null)
+                        
+                        m_DependentAssets.Add(Model.CreateAsset(assetName, folderAsset));
+                        if (m_DependentAssets != null && m_DependentAssets.Count > 0)
                         {
-                            m_DependentAssets.Add(newAsset);
-                            if (m_DependentAssets != null && m_DependentAssets.Count > 0)
-                            {
-                                var last = m_DependentAssets.Last();
-                                if (last != null)
-                                    m_TotalSize += last.fileSize;
-                            }
+                            var last = m_DependentAssets.Last();
+                            if (last != null)
+                                m_TotalSize += last.fileSize;
                         }
                     }
                 }
@@ -441,7 +421,7 @@ namespace AssetBundleBrowser.AssetBundleModel
 
             m_Dirty = false;
         }
-        internal List<BundleDependencyInfo> GetBundleDependencies()
+        internal HashSet<string> GetBundleDependencies()
         {
             return m_BundleDependencies;
         }
@@ -500,18 +480,7 @@ namespace AssetBundleBrowser.AssetBundleModel
                 }
                 else if(bundleName != m_Name.fullNativeName)
                 {
-                    BundleDependencyInfo dependencyInfo = m_BundleDependencies.Find( m => m.m_BundleName == bundleName );
-
-                    if( dependencyInfo == null )
-                    {
-                        dependencyInfo = new BundleDependencyInfo( bundleName, asset, ai );
-                        m_BundleDependencies.Add( dependencyInfo );
-                    }
-                    else
-                    {
-                        dependencyInfo.m_FromAssets.Add( asset );
-                        dependencyInfo.m_ToAssets.Add( ai );
-                    }
+                    m_BundleDependencies.Add(bundleName);
                 }
             }
         }

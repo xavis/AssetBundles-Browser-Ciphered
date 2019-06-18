@@ -3,8 +3,8 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
-
 using AssetBundleBrowser.AssetBundleDataSource;
+using UnityCipher;
 
 namespace AssetBundleBrowser
 {
@@ -52,6 +52,7 @@ namespace AssetBundleBrowser
         List<ToggleData> m_ToggleData;
         ToggleData m_ForceRebuild;
         ToggleData m_CopyToStreaming;
+        ToggleData m_CipherBundle;
         GUIContent m_TargetContent;
         GUIContent m_CompressionContent;
         internal enum CompressOptions
@@ -158,6 +159,21 @@ namespace AssetBundleBrowser
                 "Copy to StreamingAssets",
                 "After build completes, will copy all build content to " + m_streamingPath + " for use in stand-alone player.",
                 m_UserData.m_OnToggles);
+            m_CipherBundle = new ToggleData(
+                false,
+                "Protect Bundle?",
+                "After build completes, will Cipher all the content with the password typed below.",
+                m_UserData.m_OnToggles);
+
+            if (File.Exists(dataPath))
+            {
+                BinaryFormatter bf = new BinaryFormatter();
+                FileStream file = File.Open(dataPath, FileMode.Open);
+                var data = bf.Deserialize(file) as BuildTabData;
+                if (data != null)
+                    m_UserData = data;
+                file.Close();
+            }
 
             m_TargetContent = new GUIContent("Build Target", "Choose target platform to build for.");
             m_CompressionContent = new GUIContent("Compression", "Choose no compress, standard (LZMA), or chunk based (LZ4)");
@@ -240,6 +256,22 @@ namespace AssetBundleBrowser
                         m_UserData.m_OnToggles.Remove(m_CopyToStreaming.content.text);
                     m_CopyToStreaming.state = newState;
                 }
+
+                newState = GUILayout.Toggle(
+                    m_CipherBundle.state,
+                    m_CipherBundle.content);
+                if (newState != m_CipherBundle.state)
+                {
+                    if (newState)
+                        m_UserData.m_OnToggles.Add(m_CipherBundle.content.text);
+                    else
+                        m_UserData.m_OnToggles.Remove(m_CipherBundle.content.text);
+                    m_CipherBundle.state = newState;
+                }
+
+                if(m_CipherBundle.state) {
+                    m_UserData.m_CipherPassword = EditorGUILayout.TextField("Cipher Password", m_UserData.m_CipherPassword);
+                }
             }
 
             // advanced options
@@ -267,7 +299,6 @@ namespace AssetBundleBrowser
                             tog.state);
                         if (newState != tog.state)
                         {
-
                             if (newState)
                                 m_UserData.m_OnToggles.Add(tog.content.text);
                             else
@@ -362,6 +393,9 @@ namespace AssetBundleBrowser
 
             if(m_CopyToStreaming.state)
                 DirectoryCopy(m_UserData.m_OutputPath, m_streamingPath);
+
+            if(m_CipherBundle.state)  
+                DirectoryCipher(m_UserData.m_OutputPath, m_UserData.m_CipherPassword);
         }
 
         private static void DirectoryCopy(string sourceDirName, string destDirName)
@@ -387,6 +421,31 @@ namespace AssetBundleBrowser
                 File.Copy(filePath, newFilePath, true);
             }
         }
+
+        private static void DirectoryCipher(string sourceDirName, string password)
+        {
+            // If the destination directory doesn't exist, create it.
+            string destDirName = Path.Combine(sourceDirName, "Ciphered");
+            if (!Directory.Exists(destDirName))
+            {
+                Directory.CreateDirectory(destDirName);
+            }
+
+            foreach (string folderPath in Directory.GetDirectories(sourceDirName, "*", SearchOption.AllDirectories))
+            {
+                if (!Directory.Exists(folderPath.Replace(sourceDirName, destDirName)) && folderPath.IndexOf("Ciphered") < 0)
+                    Directory.CreateDirectory(folderPath.Replace(sourceDirName, destDirName));
+            }
+
+            foreach (string filePath in Directory.GetFiles(sourceDirName, "*.*", SearchOption.AllDirectories))
+            {
+                var fileDirName = Path.GetDirectoryName(filePath).Replace("\\", "/");
+                var fileName = Path.GetFileName(filePath);
+                string newFilePath = Path.Combine(fileDirName.Replace(sourceDirName, destDirName), fileName);
+                File.WriteAllBytes(newFilePath, RijndaelEncryption.Encrypt(File.ReadAllBytes(filePath), password));
+            }
+    }
+
 
         private void BrowseForFolder()
         {
@@ -454,6 +513,7 @@ namespace AssetBundleBrowser
             internal ValidBuildTarget m_BuildTarget = ValidBuildTarget.StandaloneWindows;
             internal CompressOptions m_Compression = CompressOptions.StandardCompression;
             internal string m_OutputPath = string.Empty;
+            internal string m_CipherPassword = string.Empty;
             internal bool m_UseDefaultPath = true;
         }
     }

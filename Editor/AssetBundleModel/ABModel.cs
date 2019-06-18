@@ -614,7 +614,6 @@ namespace AssetBundleBrowser.AssetBundleModel
                 {
                     bool autoRefresh = EditorPrefs.GetBool("kAutoRefresh");
                     EditorPrefs.SetBool("kAutoRefresh", false);
-                    AssetDatabase.StartAssetEditing();
                     EditorUtility.DisplayProgressBar("Moving assets to bundles", "", 0);
                     for (int i = 0; i < size; i++)
                     {
@@ -622,7 +621,6 @@ namespace AssetBundleBrowser.AssetBundleModel
                         s_MoveData[i].Apply();
                     }
                     EditorUtility.ClearProgressBar();
-                    AssetDatabase.StopAssetEditing();
                     EditorPrefs.SetBool("kAutoRefresh", autoRefresh);
                     s_MoveData.Clear();
                 }
